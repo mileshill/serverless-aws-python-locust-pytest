@@ -1,0 +1,105 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: kitten
+
+provider:
+  name: aws
+  runtime: python3.7
+
+# you can overwrite defaults here
+  stage: ${opt:stage}
+  region: us-east-2
+  version: "v1"
+
+# you can add statements to the Lambda function's IAM Role here
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - dynamodb:DescribeTable
+      Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:service}-${opt:stage}
+
+# you can define service wide environment variables here
+  environment:
+    DYNAMODB_KITTEN_TABLE: ${self:service}-${opt:stage}
+
+# you can add packaging information here
+package:
+  exclude:
+  - node_modules/**
+  - .idea/**
+  - .requirements/**
+  - env/**
+  - README.md
+  - package.json
+  - package-lock.json
+  - requirements.txt
+plugins:
+  - serverless-pseudo-parameters
+functions:
+  create:
+    handler: services/create.create
+    events:
+      - http:
+          path: /${self:provider.version}/kitten
+          method: post
+          cors: true
+  list:
+    handler: services/list.list
+    events:
+      - http:
+          path: /${self:provider.version}/kitten
+          method: get
+          cors: true
+  get:
+    handler: services/get.get
+    events:
+    - http:
+        path: /${self:provider.version}/kitten/{name}
+        method: get
+        cors: true
+  update:
+    handler: services/put.update
+    events:
+    - http:
+        path: /${self:provider.version}/kitten
+        method: put
+        cors: true
+  delete:
+    handler: services/delete.delete
+    events:
+    - http:
+        path: /${self:provider.version}/kitten
+        method: delete
+        cors: true
+
+# you can add CloudFormation resource templates here
+resources:
+  Resources:
+    kittensTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        TableName: ${self:service}-${opt:stage}
+        AttributeDefinitions:
+          - AttributeName: name
+            AttributeType: S
+        KeySchema:
+          - AttributeName: name
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
